@@ -1,7 +1,7 @@
 # FlexSpGEMM
  
 
-**FlexSpGEMM** is an open-source project that optimizes general sparse matrix-matrix multiplication (SpGEMM) on GPUs. It leverages machine learning methods to predict and adaptively select flexible tile sizes, enabling efficient computation across diverse sparse matrix workloads.
+**FlexSpGEMM** is an open-source project that optimizes general sparse matrix-matrix multiplication (SpGEMM) on GPUs. It leverages machine learning methods to predict and adaptively select flexible tile sizes, enabling efficient computation across diverse sparse matrix workloads. We will update some details when doing Artifact Evaluation (AE).
 
 
 ## Introduction
