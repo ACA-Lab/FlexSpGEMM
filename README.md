@@ -48,65 +48,15 @@ src/test -d 0 -aat 0 -tau 0.7 -csr2tile gpu data/test/bundle1.mtx
 
 The `-csr2tile` option selects the preprocessing backend (`gpu` by default, or `cpu`). Set `CHECK_RESULT=1` to compare the FlexSpGEMM output with cuSPARSE; set `CHECK_RESULT=0` for timing-only runs.
 
-### Step2: Predict tile shape and tau with LightGBM, LLM and SVM and run FlexSpGEMM
-For this step, we also need FlexSpGEMM environment.
-Firstly, please get the data features by the command below:
-```bash
-cd data_prepare/data_get_sh
-python run_pipeline.py
-```
-Then, you can run the command below to get the accuracy of LightGBM, LLM and SVM:
-To quickly reproduce the results in our paper, we load checkpoints from previous trainning.
-```bash
-cd ../../..
-cd ML_method
-```
+### Paper experiments
 
-#### LightGBM
-```bash
-cd LightGBM/predictResult_test12
-python predict_test12.py
-cd ../predictResult_test100
-python predict_test100.py
-cd ../..
-```
-
-#### LLM
-```bash
-cd LLM
-```
-Then, you can download the checkpoint from https://huggingface.co/MayerJones/LLM_checkpoint/tree/main and save as LLM/checkpoint for LLM inference.
-```bash
-python eval_LLM.py
-cd ..
-```
-
-#### SVM
-```bash
-cd SVM
-python eval_svm.py
-cd ..
-```
-
-### Step3: Run the other SpGEMM methods
-For this step, we would compile and run the code to get the logs of other SpGEMM methods.
-```bash
-cd ..
-cd other_spgemm_methods
-bash run_other_SpGEMM_method.sh
-```
-
-### Step4: Save CSV files and draw figures
-For this step, we would collect all CSV files and logs to get the final data and figures.
-```bash
-cd ..
-cd results
-bash collect_and_draw_plots.sh
-```
-
-## Full Evaluation from Scratch
-Data Download (3h, 19GB)
-If you prefer to reproduce the complete evaluation pipeline from scratch, we have prepared the LightGBM dataset split in advance. The split configuration is located at: 
+The public code checkout provides the implementation, but does not by itself
+contain all the drivers, baseline sources, models and frozen data for the paper
+experiments. See [the artifact evaluation guide](AE/README.md) for the separate
+AE archive, setup, seven-figure A100 workflow, and known protocol limitations.
+The [artifact description](AE/ae.tex) can be uploaded to Overleaf. The archive
+still needs to be distributed separately; the guide does not assume an archive
+URL that has not been published.
 
 ## Output information
 

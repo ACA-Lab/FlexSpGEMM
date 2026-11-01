@@ -1,0 +1,70 @@
+\documentclass[10pt,twocolumn]{article}
+\usepackage[margin=0.7in]{geometry}
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage{listings}
+\lstset{basicstyle=\ttfamily\scriptsize,breaklines=true,columns=fullflexible}
+\setlist{nosep,leftmargin=*}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{3pt}
+\begin{document}
+\section*{A. Artifact Description}
+\subsection*{A.1 Check-list}
+\begin{itemize}
+\item \textbf{Algorithm:} GPU sparse matrix--matrix multiplication (SpGEMM), primarily $C=A^2$.
+\item \textbf{Program:} CUDA/C++, OpenMP, and Python.
+\item \textbf{Hardware:} NVIDIA A100 80 GB; the paper uses A100 PCIe. The artifact was previously tested on A100 SXM4.
+\item \textbf{Software:} Linux x86-64, CUDA Toolkit 11.8, NVIDIA driver, GCC/G++, make, CMake, Git, and Python 3.12.
+\item \textbf{Dataset:} 142 SuiteSparse matrices (48.16 GiB uncompressed) and 16 matrices for the FP16 comparison. Allow at least 100 GiB disk space and substantial host memory.
+\item \textbf{Output:} runtimes, throughput, correctness status, storage costs, model accuracy, and plots for Figures 7, 8, 10, 11, 12, 13 and 15.
+\item \textbf{Workflow:} obtain the artifact, clone the code, install dependencies, check a small example, and run the experiments. A full run may take a working day or longer.
+\end{itemize}
+\subsection*{A.2 How delivered}
+The implementation is available at \url{https://github.com/for-the-juan/FlexSpGEMM}. The separate FlexSpGEMM-AE archive is also required: it provides experiment drivers, patches, baseline sources, saved models and evaluation data. The archive and its SHA-256 file must be distributed with this description; a public archive URL has not yet been established. The GitHub repository alone is insufficient for all seven figures.
+\subsection*{A.3 Installation}
+From a directory containing the archive and checksum, run (replace the archive path):
+\begin{lstlisting}
+export ARCHIVE=/path/to/FlexSpGEMM-AE-RELEASE.tar.gz
+cd "$(dirname "$ARCHIVE")"
+sha256sum -c "$(basename "$ARCHIVE").sha256"
+tar -xzf "$ARCHIVE"
+cd FlexSpGEMM-AE
+git clone https://github.com/for-the-juan/FlexSpGEMM.git upstream
+git -C upstream checkout --detach \
+  1cf3e46b1266a4d6ad9a45d18bf62044d9811e66
+python3.12 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements-ml.txt
+export CUDA_HOME=/usr/local/cuda-11.8
+export PATH="$CUDA_HOME/bin:$PATH"
+export LD_LIBRARY_PATH="$CUDA_HOME/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export GPU_ID=0
+python scripts/bootstrap.py
+\end{lstlisting}
+Set \texttt{GPU\_ID} to the physical device index shown by \texttt{nvidia-smi}. Bootstrap checks the pinned source, applies the documented patches, and downloads pinned dependencies and model weights when needed. SuiteSparse inputs are downloaded during evaluation; a local flat directory of the exact inputs may be used instead.
+\subsection*{A.4 Experimental workflow}
+First check two matrices and their results against cuSPARSE:
+\begin{lstlisting}
+python scripts/quickstart.py --gpu "$GPU_ID" \
+  --cuda "$CUDA_HOME"
+\end{lstlisting}
+Both comparisons must pass. Then run the A100 experiments:
+\begin{lstlisting}
+GPU_ID="$GPU_ID" CUDA_HOME="$CUDA_HOME" \
+  bash scripts/run_requested_figures.sh --fresh
+\end{lstlisting}
+To reuse local inputs, set \texttt{MATRIX\_DIR} to a flat directory containing the 142 main and 16 FP16 matrices. Missing inputs are downloaded. Without \texttt{--fresh}, completed attempts, including failures, may be reused. Avoid other GPU workloads while measuring.
+\subsection*{A.5 Output and interpretation}
+Plots and their coverage manifest are written to \texttt{results/requested-figures/}; detailed tables are in \texttt{results/a100/} and raw logs in \texttt{logs/}. Inspect failures and the manifest as well as the plots.
+\begin{itemize}
+\item \textbf{Figures 7 and 8:} compare FP64 throughput and paired speedups on 142 matrices and 12 representatives against four baselines.
+\item \textbf{Figure 10:} compare FP16 throughput with tSparse on 16 matrices. Both use input values $1/16$; the original paper's value and configuration policies have not been verified.
+\item \textbf{Figure 11:} compare storage for input $A$ in CSR, tiled and hypothetical dense formats, not peak memory.
+\item \textbf{Figure 12:} inspect preprocessing and end-to-end latency. The recovered GPU probe covers only a subset of model features; it is a proxy and cannot verify the paper's full GPU preprocessing claim.
+\item \textbf{Figure 13:} compare fixed CUDA-only, adaptive CUDA-only, adaptive Tensor-only and hybrid execution on three matrices.
+\item \textbf{Figure 15:} evaluate saved models against a frozen throughput grid. Accuracy is predicted throughput divided by the grid optimum; this does not retrain the models or remeasure the full grid.
+\end{itemize}
+The public code revision includes post-paper changes and the artifact applies validation and Tensor Core correctness patches. Hardware, completed matrix pairs and source changes can alter results. The prior test found a numerical failure on \texttt{pdb1HYS}; a timing is not proof of correctness. The A100 workflow does not validate the H200 panel of Figure 7. Figure 15 also has limitations in the recovered model selection, test overlap, averaging and LLM loading; see the artifact README for details. Figures 10 and 12 therefore provide qualified experiments rather than exact verification of the original protocols.
+\end{document}
