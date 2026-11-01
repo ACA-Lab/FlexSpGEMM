@@ -1,0 +1,5 @@
+# Fresh-clone validation, 1 November 2026
+
+The archive was downloaded from the public Git LFS branch and its SHA-256 verified. A fresh Python 3.12 environment installed `requirements-ml.txt` and passed `pip check`. A clean source checkout at the pinned revision passed the two-matrix A100 quick check against cuSPARSE, using an existing Python environment and locally cached matrices. The collection was offline and Hugging Face downloads encountered connection resets; the full run uses local matrices and a hash-checked local checkpoint. This is not a successful end-to-end network-download test.
+
+A deep checkout exposed a fixed-size spECK path buffer overflow; the archive driver now supplies a short relative input path. Retesting `3Dspectralwave` completed with exit 0; spECK comparison was disabled. MOSparse rejected that matrix's complex Hermitian input. A fresh full 142-matrix run was restarted, and has not yet established full coverage or reproduced all conclusions. Figure 10/12 protocol limitations remain as stated in the guide.
