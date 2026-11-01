@@ -43,6 +43,18 @@ python scripts/quickstart.py --gpu "$GPU_ID" --cuda "$CUDA_HOME"
 
 The quick check downloads `m_t1` and `mult_dcop_03`, builds the required executable, and checks their outputs against cuSPARSE. Both checks must pass. To reuse local matrices, append `--matrix-dir /path/to/mat-142`; the directory must directly contain the `.mtx` files. The quick check is not a full evaluation.
 
+## Download the 142 main matrices from the GitHub checkout
+
+From the root of a clone of the main branch, run:
+
+```bash
+python3 AE/scripts/download_matrices.py --output /path/to/matrices
+```
+
+The script checks dimensions and SHA-256, and skips files already verified. For a small check, append `--matrices m_t1,mult_dcop_03`; use `--verify-only` to check existing files without downloading. Interrupted downloads are retried when the script is rerun. The 16 FP16 inputs are separate and are handled by the experiment launcher. The SuiteSparse collection has reported an outage, so use previously downloaded matrices if its server is unavailable. Pass the directory to the launcher using `MATRIX_DIR`.
+
+This downloader is in the GitHub checkout under `AE/`; the separately published archive uses its own existing `scripts/ae.py prepare` for matrix preparation.
+
 ## 4. Run the experiments
 
 ```bash
