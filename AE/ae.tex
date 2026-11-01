@@ -16,22 +16,26 @@
 \item \textbf{Algorithm:} GPU sparse matrix--matrix multiplication (SpGEMM), primarily $C=A^2$.
 \item \textbf{Program:} CUDA/C++, OpenMP, and Python.
 \item \textbf{Hardware:} NVIDIA A100 80 GB; the paper uses A100 PCIe. The artifact was previously tested on A100 SXM4.
-\item \textbf{Software:} Linux x86-64, CUDA Toolkit 11.8, NVIDIA driver, GCC/G++, make, CMake, Git, and Python 3.12.
+\item \textbf{Software:} Linux x86-64, CUDA Toolkit 11.8, NVIDIA driver, GCC/G++, make, CMake, Git, Git LFS, and Python 3.12.
 \item \textbf{Dataset:} 142 SuiteSparse matrices (48.16 GiB uncompressed) and 16 matrices for the FP16 comparison. Allow at least 100 GiB disk space and substantial host memory.
 \item \textbf{Output:} runtimes, throughput, correctness status, storage costs, model accuracy, and plots for Figures 7, 8, 10, 11, 12, 13 and 15.
 \item \textbf{Workflow:} obtain the artifact, clone the code, install dependencies, check a small example, and run the experiments. A full run may take a working day or longer.
 \end{itemize}
 \subsection*{A.2 How delivered}
-The implementation is available at \url{https://github.com/for-the-juan/FlexSpGEMM}. The separate FlexSpGEMM-AE archive is also required: it provides experiment drivers, patches, baseline sources, saved models and evaluation data. The archive and its SHA-256 file must be distributed with this description; a public archive URL has not yet been established. The GitHub repository alone is insufficient for all seven figures.
+The implementation is available at \url{https://github.com/for-the-juan/FlexSpGEMM}. The separate FlexSpGEMM-AE archive is also required: it provides experiment drivers, patches, baseline sources, saved models and evaluation data. The archive and its SHA-256 file are available in the \texttt{ae-artifact} branch via Git LFS. The ordinary source checkout alone is insufficient for all seven figures.
 \subsection*{A.3 Installation}
-From a directory containing the archive and checksum, run (replace the archive path):
+Download the archive and clone the pinned source:
 \begin{lstlisting}
-export ARCHIVE=/path/to/FlexSpGEMM-AE-RELEASE.tar.gz
-cd "$(dirname "$ARCHIVE")"
+GIT_LFS_SKIP_SMUDGE=1 git clone --single-branch \
+  --branch ae-artifact \
+  https://github.com/ACA-Lab/FlexSpGEMM.git artifact-download
+git -C artifact-download lfs pull
+cd artifact-download
+export ARCHIVE="$PWD/FlexSpGEMM-AE-github.tar.gz"
 sha256sum -c "$(basename "$ARCHIVE").sha256"
 tar -xzf "$ARCHIVE"
 cd FlexSpGEMM-AE
-git clone https://github.com/for-the-juan/FlexSpGEMM.git upstream
+git clone https://github.com/ACA-Lab/FlexSpGEMM.git upstream
 git -C upstream checkout --detach \
   1cf3e46b1266a4d6ad9a45d18bf62044d9811e66
 python3.12 -m venv .venv

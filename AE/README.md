@@ -4,19 +4,22 @@ This artifact contains the scripts and data needed to evaluate Figures **7, 8, 1
 
 ## 1. Requirements
 
-Use Linux x86-64, an NVIDIA A100 80 GB, CUDA Toolkit 11.8 (including `nvcc` and cuSPARSE), a compatible NVIDIA driver, GCC/G++ with OpenMP, make, CMake, Git, and Python 3.12. Allow at least 100 GiB disk space, plus substantial host RAM (the prior machine had 377 GiB). The 142 main matrices occupy 48.16 GiB uncompressed. Download and full evaluation can take a working day or longer. The paper used an A100 PCIe; previous artifact tests used an A100 SXM4, so performance may differ.
+Use Linux x86-64, an NVIDIA A100 80 GB, CUDA Toolkit 11.8 (including `nvcc` and cuSPARSE), a compatible NVIDIA driver, GCC/G++ with OpenMP, make, CMake, Git, Git LFS, and Python 3.12. Allow at least 100 GiB disk space, plus substantial host RAM (the prior machine had 377 GiB). The 142 main matrices occupy 48.16 GiB uncompressed. Download and full evaluation can take a working day or longer. The paper used an A100 PCIe; previous artifact tests used an A100 SXM4, so performance may differ.
 
 ## 2. Get the artifact and source
 
-The public GitHub repository contains the implementation; **the separate AE archive is also required** for the experiment drivers, patches, MOSparse source, models and frozen evaluation data. The archive must be supplied alongside these instructions; it is not currently available from a confirmed public URL. From a directory containing the delivered archive and its `.sha256` file:
+The public GitHub repository contains the implementation; **the separate AE archive is also required** for the experiment drivers, patches, MOSparse source, models and frozen evaluation data. It is published in the [ae-artifact branch](https://github.com/ACA-Lab/FlexSpGEMM/tree/ae-artifact) using Git LFS. From a new working directory:
 
 ```bash
-export ARCHIVE=/path/to/FlexSpGEMM-AE-RELEASE.tar.gz
-cd "$(dirname "$ARCHIVE")"
+GIT_LFS_SKIP_SMUDGE=1 git clone --single-branch --branch ae-artifact \
+  https://github.com/ACA-Lab/FlexSpGEMM.git artifact-download
+git -C artifact-download lfs pull
+cd artifact-download
+export ARCHIVE="$PWD/FlexSpGEMM-AE-github.tar.gz"
 sha256sum -c "$(basename "$ARCHIVE").sha256"
 tar -xzf "$ARCHIVE"
 cd FlexSpGEMM-AE
-git clone https://github.com/for-the-juan/FlexSpGEMM.git upstream
+git clone https://github.com/ACA-Lab/FlexSpGEMM.git upstream
 git -C upstream checkout --detach 1cf3e46b1266a4d6ad9a45d18bf62044d9811e66
 ```
 

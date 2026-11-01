@@ -1,3 +1,5 @@
+> Historical detailed notes: use [README.md](README.md) for the current seven-figure scope and workflow. Paths below refer to the extracted AE archive.
+
 # FlexSpGEMM PPoPP 2027 artifact
 
 > **Reviewer entry point (22 October 2026):** [AE_GUIDE.md](AE_GUIDE.md) / [PDF](AE_GUIDE.pdf) provide the PPoPP-style getting-started and step-by-step guide. The agreed core scope is A100 Figures 7, 8, 9, 11, 13 and 15; run `scripts/run_key_results.sh --fresh`. Figures 10/12 below remain qualified additional experiments. [Validation evidence](VALIDATION.md) records newly executed checks and known failures.

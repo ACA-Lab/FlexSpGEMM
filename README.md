@@ -54,9 +54,7 @@ The public code checkout provides the implementation, but does not by itself
 contain all the drivers, baseline sources, models and frozen data for the paper
 experiments. See [the artifact evaluation guide](AE/README.md) for the separate
 AE archive, setup, seven-figure A100 workflow, and known protocol limitations.
-The [artifact description](AE/ae.tex) can be uploaded to Overleaf. The archive
-still needs to be distributed separately; the guide does not assume an archive
-URL that has not been published.
+The [artifact description](AE/ae.tex) can be uploaded to Overleaf. The archive is available in the [ae-artifact branch](https://github.com/ACA-Lab/FlexSpGEMM/tree/ae-artifact) via Git LFS.
 
 ## Output information
 
