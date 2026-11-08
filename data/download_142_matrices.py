@@ -1,27 +1,70 @@
 #!/usr/bin/env python3
-"""Download the matrices listed in mat-142.csv, with reference verification.
+"""Download the matrices in mat-142.csv into data/test by default."""
 
-Example: python3 data/download_142_matrices.py --output /path/to/matrices
-Use --help for selection and verification options.
-"""
-
+import argparse
 import csv
-import sys
 from pathlib import Path
+import shutil
+import subprocess
+import tarfile
+import tempfile
 
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / 'AE' / 'scripts'))
-import download_matrices as downloader
+
+def download_matrix(group, name, output):
+    target = output / f'{name}.mtx'
+    if target.exists():
+        print(f'  Already exists: {target}')
+        return True
+    url = f'https://sparse-files.engr.tamu.edu/MM/{group}/{name}.tar.gz'
+    try:
+        with tempfile.TemporaryDirectory(dir=output, prefix='.download-') as temp:
+            archive = Path(temp) / f'{name}.tar.gz'
+            for attempt in range(1, 4):
+                result = subprocess.run(['wget', '-c', '-O', str(archive), url], check=False)
+                if result.returncode == 0:
+                    break
+                print(f'  Download failed (attempt {attempt}/3)')
+            else:
+                return False
+            with tarfile.open(archive, 'r:gz') as tar:
+                matches = [member for member in tar.getmembers()
+                           if member.isfile() and Path(member.name).name == f'{name}.mtx']
+                if len(matches) != 1:
+                    raise ValueError('archive does not contain exactly one matching matrix')
+                extracted = Path(temp) / f'{name}.mtx'
+                with tar.extractfile(matches[0]) as source, extracted.open('wb') as dest:
+                    shutil.copyfileobj(source, dest)
+            extracted.rename(target)
+        print(f'  Done: {target}')
+        return True
+    except (OSError, tarfile.TarError, ValueError) as exc:
+        print(f'  Failed: {exc}')
+        return False
 
 
 def main():
-    with (ROOT / 'data' / 'mat-142.csv').open(newline='', encoding='utf-8') as source:
-        rows = list(csv.reader(source))
-    csv_pairs = [(row[0], row[1]) for row in rows]
-    manifest_pairs = [(row['group'], row['matrix']) for row in downloader.read_rows(downloader.MANIFEST)]
-    if len(csv_pairs) != 142 or len(set(csv_pairs)) != 142 or set(csv_pairs) != set(manifest_pairs):
-        raise RuntimeError('mat-142.csv and the download manifest must contain the same 142 matrices')
-    return downloader.main()
+    script_dir = Path(__file__).resolve().parent
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--output', type=Path, default=script_dir / 'test',
+                        help='Output directory (default: data/test)')
+    args = parser.parse_args()
+
+    with (script_dir / 'mat-142.csv').open(newline='', encoding='utf-8') as source:
+        matrices = list(csv.reader(source))
+    args.output.mkdir(parents=True, exist_ok=True)
+    failed = []
+    for index, row in enumerate(matrices, 1):
+        group, name = row[:2]
+        print(f'[{index}/{len(matrices)}] {group}/{name}', flush=True)
+        success = download_matrix(group, name, args.output)
+        if not success:
+            failed.append(name)
+
+    print(f'Complete: {len(matrices) - len(failed)}/{len(matrices)} succeeded')
+    if failed:
+        print('Failed: ' + ', '.join(failed))
+        return 1
+    return 0
 
 
 if __name__ == '__main__':
