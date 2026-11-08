@@ -8,6 +8,7 @@ import csv
 import os
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -20,7 +21,8 @@ TILES = ['8x8', '8x16', '8x32', '16x8', '16x16', '16x32', '32x8', '32x16', '32x3
 COMBOS = [f'{tile}_{tc}/8' for tile in TILES for tc in range(9)]
 HEADER = ['matrix_name', 'gpu', 'mode', 'lightgbm_pred_combo', 'lightgbm_pred_gflops',
           'best_combo', 'best_gflops', 'gflops_ratio', 'tilespgemm_16x16_gflops',
-          'speedup_vs_tilespgemm_16x16']
+          'speedup_vs_tilespgemm_16x16', 'feature_extraction_ms',
+          'lightgbm_inference_ms', 'prediction_preprocessing_ms']
 
 
 def run_probe(executable, *args):
@@ -36,17 +38,32 @@ def features(path, modes):
     if not all(info.get(k) for k in ('rows', 'cols', 'nnz', 'symmetric')):
         raise ValueError('could not parse matrix metadata')
     if 'AA' in modes:
-        pc, _ = pu.parse_probec(run_probe(ROOT / 'data/probeC', path), 'pC_AA')
+        pc, timing = pu.parse_probec(run_probe(ROOT / 'data/probeC', path), 'pC_AA')
         row.update(pc)
+        row['_feature_AA'] = sum_timings(info['probe_time_ms'], timing['build_ms'], timing['estimate_ms'])
     if 'AAT' in modes and info['symmetric'].lower() != 'yes':
         from scipy.io import mmread, mmwrite
         with tempfile.TemporaryDirectory(prefix='flexspgemm-transpose-') as tmp:
             transpose = Path(tmp) / 'transpose.mtx'
+            start = time.perf_counter()
             mmwrite(str(transpose), mmread(str(path)).transpose())
-            row.update(pu.parse_probe9_at(run_probe(ROOT / 'data/tile_probe', transpose)))
-        pc, _ = pu.parse_probec(run_probe(ROOT / 'data/probeC', '--aat', path), 'pC_AAT')
+            transpose_ms = (time.perf_counter() - start) * 1000
+            at_output = run_probe(ROOT / 'data/tile_probe', transpose)
+            row.update(pu.parse_probe9_at(at_output))
+        pc, timing = pu.parse_probec(run_probe(ROOT / 'data/probeC', '--aat', path), 'pC_AAT')
         row.update(pc)
+        row['_feature_AAT'] = sum_timings(info['probe_time_ms'], transpose_ms,
+                                          pu._extract(r'Probe time: ([\d.]+) ms', at_output),
+                                          timing['build_ms'], timing['estimate_ms'])
     return row
+
+
+def sum_timings(*values):
+    """Return None when a probe did not report a timing."""
+    try:
+        return sum(float(value) for value in values if value != '') if all(value != '' for value in values) else None
+    except (TypeError, ValueError):
+        return None
 
 
 def main():
@@ -71,6 +88,7 @@ def main():
     modes = ['AA', 'AAT'] if args.mode == 'both' else [args.mode]
     gpus = ['A100', 'H200'] if args.gpu == 'both' else [args.gpu]
     results, failures = [], []
+    warmed_up = False
     for i, path in enumerate(matrices, 1):
         print(f'[{i}/{len(matrices)}] {path.name}', flush=True)
         try:
@@ -88,10 +106,21 @@ def main():
                 if not np.isfinite(values).all():
                     raise ValueError('non-finite features')
                 inputs.append(values)
-            predictions = model.predict(np.asarray(inputs), num_threads=args.threads)
-            for item, index in zip(selected, predictions.argmax(axis=1)):
+            if not warmed_up:
+                model.predict(np.asarray(inputs[:1]), num_threads=args.threads)
+                warmed_up = True
+            for item, values in zip(selected, inputs):
+                sample = values.reshape(1, -1)
+                start = time.perf_counter()
+                prediction = model.predict(sample, num_threads=args.threads)
+                inference_ms = (time.perf_counter() - start) * 1000
+                index = prediction.argmax(axis=1)[0]
+                feature_ms = row.get('_feature_' + item['_mode'])
                 results.append(dict(matrix_name=path.stem, gpu=item['_gpu'], mode=item['_mode'],
-                                    lightgbm_pred_combo=COMBOS[int(index)]))
+                                    lightgbm_pred_combo=COMBOS[int(index)],
+                                    feature_extraction_ms=f'{feature_ms:.6f}' if feature_ms is not None else '',
+                                    lightgbm_inference_ms=f'{inference_ms:.6f}',
+                                    prediction_preprocessing_ms=f'{feature_ms + inference_ms:.6f}' if feature_ms is not None else ''))
         except (OSError, ValueError, RuntimeError) as exc:
             print(f'  FAILED: {exc}', file=sys.stderr, flush=True)
             failures.append(path.name)
